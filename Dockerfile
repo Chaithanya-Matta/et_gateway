@@ -23,4 +23,4 @@ COPY --chown=app:app server.py .
 USER app
 EXPOSE 8080
 
-CMD ["fastmcp", "run", "server.py:mcp", "--transport", "sse", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["fastmcp", "run", "server.py:mcp", "--transport", "http", "--stateless", "--host", "0.0.0.0", "--port", "8080", "--path", "/mcp"]

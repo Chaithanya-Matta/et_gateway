@@ -441,5 +441,12 @@ async def get_weather_info(
 
 
 if __name__ == "__main__":
-    # Bind to every container interface on Cloud Run's expected port using SSE.
-    mcp.run(transport="sse", host="0.0.0.0", port=8080)
+    # Streamable HTTP is the current remote MCP transport. Stateless mode lets
+    # Cloud Run route independent requests across horizontally scaled instances.
+    mcp.run(
+        transport="http",
+        host="0.0.0.0",
+        port=8080,
+        path="/mcp",
+        stateless_http=True,
+    )
