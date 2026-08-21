@@ -49,8 +49,8 @@ help: ## Show the available commands.
 	@echo "  make bootstrap       Enable APIs and create the image repository"
 	@echo "  make build           Build and push only the container image"
 	@echo "  make config          Show the settings that will be used"
-	@echo "  make url             Print the service URL and MCP SSE endpoint"
-	@echo "  make smoke-test      Verify that the deployed SSE endpoint responds"
+	@echo "  make url             Print the service URL and MCP HTTP endpoint"
+	@echo "  make smoke-test      Verify remote MCP tool discovery"
 	@echo "  make logs            Read recent Cloud Run logs"
 	@echo "  make describe        Show the deployed Cloud Run service"
 	@echo "  make revisions       List deployed revisions"
@@ -147,18 +147,25 @@ deploy-private: ## Run the complete deployment with IAM authentication required.
 		IMAGE_NAME="$(IMAGE_NAME)" \
 		PUBLIC=false
 
-url: check ## Print the Cloud Run base URL and the FastMCP SSE URL.
+url: check ## Print the Cloud Run base URL and the Streamable HTTP MCP URL.
 	@SERVICE_URL="$$(gcloud run services describe "$(SERVICE)" --region="$(REGION)" --project="$(PROJECT_ID)" --format='value(status.url)')"; \
 		echo "Service URL: $$SERVICE_URL"; \
-		echo "MCP SSE endpoint: $$SERVICE_URL/sse"
+		echo "MCP Streamable HTTP endpoint: $$SERVICE_URL/mcp"
 
-smoke-test: check ## Confirm that the deployed public SSE endpoint returns HTTP 200.
+smoke-test: check ## Verify tools/list on the deployed public HTTP endpoint.
 	@SERVICE_URL="$$(gcloud run services describe "$(SERVICE)" --region="$(REGION)" --project="$(PROJECT_ID)" --format='value(status.url)')"; \
-		STATUS="$$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 5 "$$SERVICE_URL/sse" || true)"; \
-		if test "$$STATUS" = "200"; then \
-			echo "SSE endpoint is healthy: $$SERVICE_URL/sse"; \
+		if ! RESPONSE="$$(curl --silent --show-error --fail --max-time 10 \
+			--request POST "$$SERVICE_URL/mcp" \
+			--header 'Content-Type: application/json' \
+			--header 'Accept: application/json, text/event-stream' \
+			--data '{"jsonrpc":"2.0","id":1,"method":"tools/list"}')"; then \
+			echo "Error: MCP tools/list request failed." >&2; \
+			exit 1; \
+		fi; \
+		if grep -q 'get_show_or_movie_info' <<<"$$RESPONSE" && grep -q 'get_weather_info' <<<"$$RESPONSE"; then \
+			echo "MCP tool discovery is healthy: $$SERVICE_URL/mcp"; \
 		else \
-			echo "Error: SSE endpoint returned HTTP $$STATUS." >&2; \
+			echo "Error: MCP response did not include both expected tools." >&2; \
 			exit 1; \
 		fi
 
