@@ -1,0 +1,15 @@
+# Files excluded from the source archive sent to Cloud Build.
+.gcloudignore
+.git/
+.gitignore
+.venv/
+.vscode/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.mypy_cache/
+.pyright/
+.DS_Store
