@@ -20,7 +20,9 @@ from mcp.types import ToolAnnotations
 from typing_extensions import TypedDict
 
 
-logger = logging.getLogger(__name__)
+# Nest application logs under FastMCP's configured logger so INFO entries are
+# emitted by the container and collected automatically by Cloud Run Logging.
+logger = logging.getLogger("fastmcp.et_gateway")
 
 # Public, no-account API endpoints used by the MCP tools.
 TVMAZE_SEARCH_URL = "https://api.tvmaze.com/singlesearch/shows"
@@ -265,6 +267,8 @@ async def get_show_or_movie_info(title: str, ctx: Context) -> ShowInfo:
     Args:
         title: Movie or television show title to search for.
     """
+    # Record tool usage without logging the caller's potentially sensitive input.
+    logger.info("Executing MCP tool: get_show_or_movie_info")
     normalized_title = _normalize_query(title, "title")
     payload = await _request_json(
         _get_http_client(ctx),
@@ -330,6 +334,8 @@ async def get_weather_info(
         location: City, postal code, or city and region/country to search for.
         temperature_unit: Return temperatures in celsius or fahrenheit.
     """
+    # Record tool usage without logging the caller's potentially sensitive input.
+    logger.info("Executing MCP tool: get_weather_info")
     normalized_location = _normalize_query(location, "location")
     client = _get_http_client(ctx)
 
